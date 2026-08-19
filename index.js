@@ -13,6 +13,7 @@ import tkeRouter from "./services/TKE-OBS/tke.js";
 import barberRouter from "./TheGarrison/barber.js";
 import srhRouter from "./Logistica_SMI/srh.js";
 import yapeRouter, { setupYapeSocket } from "./services/Yape/yapeRouter.js";
+import adminRouter from "./services/Admin/adminRouter.js";
 
 import { createServer } from "http";
 import { Server } from "socket.io";
@@ -54,7 +55,7 @@ app.use("/srm", srmRouter);
 app.use("/tke", tkeRouter);
 app.use("/srh", srhRouter);
 app.use("/yape", yapeRouter);
-
+app.use("/admin", adminRouter);
 
 // Aislamiento: El sistema de WebSockets (req.io) SOLO se inyectará en las rutas de The Garrison
 app.use("/barber", (req, res, next) => {
