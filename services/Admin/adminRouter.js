@@ -1,4 +1,7 @@
 import express from 'express';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import rateLimit from 'express-rate-limit';
 import sql from 'mssql';
 import { getAdminConnection } from './sqlconfig_admin.js';
 
@@ -14,6 +17,88 @@ router.use(async (req, res, next) => {
     }
 });
 
+// ==========================================
+// SEGURIDAD Y LOGIN
+// ==========================================
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 5, // Limitar cada IP a 5 peticiones por ventana
+  message: { error: 'Demasiados intentos de login, intenta de nuevo en 15 minutos.' }
+});
+
+router.post('/login', loginLimiter, async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Usuario y contraseña son requeridos.' });
+    }
+
+    const pool = req.pool;
+    
+    const query = `
+      SELECT id, username, password 
+      FROM Users 
+      WHERE username = @username
+    `;
+    
+    const result = await pool.request()
+      .input('username', username) // mssql inferirá VarChar
+      .query(query);
+
+    if (result.recordset.length > 0) {
+      const user = result.recordset[0];
+      
+      // Verificar contraseña con bcrypt
+      const validPassword = await bcrypt.compare(password, user.password);
+      if (!validPassword) {
+        return res.status(401).json({ error: 'Credenciales inválidas.' });
+      }
+
+      // Generar JWT
+      const token = jwt.sign(
+        { id: user.id, username: user.username },
+        process.env.JWT_SECRET || 'super_secret_key_change_me',
+        { expiresIn: '8h' }
+      );
+
+      return res.status(200).json({ 
+        message: 'Login exitoso', 
+        token,
+        user: { id: user.id, username: user.username } 
+      });
+    } else {
+      return res.status(401).json({ error: 'Credenciales inválidas.' });
+    }
+  } catch (error) {
+    console.error("Error en login:", error);
+    return res.status(500).json({ error: 'Error interno del servidor.' });
+  }
+});
+
+// Middleware para verificar JWT en el resto de las rutas
+const verifyToken = (req, res, next) => {
+  const bearerHeader = req.headers['authorization'];
+  if (typeof bearerHeader !== 'undefined') {
+    const bearer = bearerHeader.split(' ');
+    const bearerToken = bearer[1];
+    
+    jwt.verify(bearerToken, process.env.JWT_SECRET || 'super_secret_key_change_me', (err, decoded) => {
+      if (err) {
+        return res.status(403).json({ error: 'Token inválido o expirado' });
+      }
+      req.user = decoded;
+      next();
+    });
+  } else {
+    return res.status(403).json({ error: 'No autorizado. Se requiere token.' });
+  }
+};
+
+// ==========================================
+// RUTAS ABIERTAS (DECOLECTA) - No requieren Token
+// ==========================================
 // ==========================================
 // DECOLECTA API PROXIES
 // ==========================================
@@ -47,6 +132,9 @@ router.get('/reniec/:dni', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
+// Protegemos todas las rutas siguientes
+router.use(verifyToken);
 
 // ==========================================
 // CLIENTES

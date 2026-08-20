@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import helmet from 'helmet';
 import dotenv from "dotenv";
 import gimnasioRouter from "./services/gimnasio/gimnasio.js";
 import reservasRouter from "./services/reservas/reservas.js";
@@ -34,7 +35,22 @@ app.set('socketio', io);
 
 const port = process.env.PORT || 3000;
 
-app.use(cors());
+
+// Seguridad HTTP
+app.use(helmet());
+
+// Configuración CORS restrictiva
+const allowedOrigins = ['http://localhost:5173', 'http://localhost:5174', 'https://www.woditek.com'];
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('No permitido por CORS'));
+    }
+  }
+}));
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
