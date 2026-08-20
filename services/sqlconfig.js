@@ -28,10 +28,13 @@ export const getConnection = async () => {
   try {
     if (pool) return pool;
 
-    pool = await sql.connect(config);
+    pool = new sql.ConnectionPool(config);
+    await pool.connect();
     return pool;
   } catch (error) {
     console.error("Error al conectar con SQL Server:", error);
     throw error; // Propaga el error para que el controlador lo maneje
   }
 };
+
+
