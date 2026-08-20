@@ -40,13 +40,14 @@ const port = process.env.PORT || 3000;
 app.use(helmet());
 
 // Configuración CORS restrictiva
-const allowedOrigins = ['http://localhost:5173', 'http://localhost:5174', 'https://www.woditek.com'];
+const allowedOrigins = ['http://localhost:3000', 'https://smi-peru.vercel.app', 'http://localhost:5173', 'http://localhost:5174', 'https://www.woditek.com', 'https://woditek.com'];
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error('No permitido por CORS'));
+      // Bloquear sutilmente sin lanzar una excepción ruidosa
+      callback(null, false);
     }
   }
 }));
