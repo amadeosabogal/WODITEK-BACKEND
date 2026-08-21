@@ -34,10 +34,8 @@ export const sendNotificationToAll = async (payload) => {
                         // Suscripción inválida, borrar de la BD
                         console.log(`Subscription expired/invalid: ${sub.endpoint}, removing...`);
                         await pool.request()
-                            .input('endpoint', sub.endpoint) // Assuming standard mssql input, but raw query is string based in some utils. 
-                            // Let's use template literal query safely or input parameters
-                            .query(`DELETE FROM PushSubscriptions WHERE endpoint = '${sub.endpoint}'`);
-                        // Creating a new request for deletion to avoid confusion with the outer request
+                            .input('endpoint', sub.endpoint)
+                            .query(`DELETE FROM PushSubscriptions WHERE endpoint = @endpoint`);
                     } else {
                         console.error('Error sending notification:', err);
                     }

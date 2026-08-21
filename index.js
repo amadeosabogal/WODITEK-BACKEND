@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import helmet from 'helmet';
 import dotenv from "dotenv";
+import rateLimit from 'express-rate-limit';
 import gimnasioRouter from "./services/gimnasio/gimnasio.js";
 import reservasRouter from "./services/reservas/reservas.js";
 import sqlRouter from "./services/sql_server/sql_server.js";
@@ -15,6 +16,7 @@ import barberRouter from "./TheGarrison/barber.js";
 import srhRouter from "./Logistica_SMI/srh.js";
 import yapeRouter, { setupYapeSocket } from "./services/Yape/yapeRouter.js";
 import adminRouter from "./services/Admin/adminRouter.js";
+import inventarioRouter from "./services/Inventario/inventarioRouter.js";
 
 import { createServer } from "http";
 import { Server } from "socket.io";
@@ -39,6 +41,22 @@ const port = process.env.PORT || 3000;
 // Seguridad HTTP
 app.use(helmet());
 
+// Limitar todas las peticiones generales (DDoS protection)
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 300, // 300 peticiones por IP
+  message: { error: "Demasiadas peticiones, intente nuevamente en 15 minutos." }
+});
+app.use(apiLimiter);
+
+// Limitar intentos de login específicos
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10, // 10 intentos
+  message: { error: "Demasiados intentos de inicio de sesión. Bloqueado temporalmente." }
+});
+app.use("/inventario/login", loginLimiter);
+
 // Configuración CORS restrictiva
 const allowedOrigins = ['http://localhost:3000', 'https://smi-peru.vercel.app', 'http://localhost:5173', 'http://localhost:5174', 'https://www.woditek.com', 'https://woditek.com'];
 app.use(cors({
@@ -46,8 +64,8 @@ app.use(cors({
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      // Bloquear sutilmente sin lanzar una excepción ruidosa
-      callback(null, false);
+      // Bloquear lanzando un error claro de seguridad
+      callback(new Error('No permitido por CORS (Forbidden)'));
     }
   }
 }));
@@ -73,6 +91,7 @@ app.use("/tke", tkeRouter);
 app.use("/srh", srhRouter);
 app.use("/yape", yapeRouter);
 app.use("/admin", adminRouter);
+app.use("/inventario", inventarioRouter);
 
 // Aislamiento: El sistema de WebSockets (req.io) SOLO se inyectará en las rutas de The Garrison
 app.use("/barber", (req, res, next) => {
