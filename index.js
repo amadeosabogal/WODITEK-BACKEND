@@ -58,7 +58,7 @@ const loginLimiter = rateLimit({
 app.use("/inventario/login", loginLimiter);
 
 // Configuración CORS restrictiva
-const allowedOrigins = ['http://localhost:3000', 'https://smi-peru.vercel.app', 'http://localhost:5173', 'http://localhost:5174', 'https://www.woditek.com', 'https://woditek.com'];
+const allowedOrigins = ['http://localhost:3000', 'http://localhost:3002', 'https://smi-peru.vercel.app', 'http://localhost:5173', 'http://localhost:5174', 'https://www.woditek.com', 'https://woditek.com', 'https://smi-sistema-logistico.vercel.app'];
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.includes(origin)) {
