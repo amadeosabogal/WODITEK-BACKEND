@@ -39,7 +39,10 @@ const port = process.env.PORT || 3000;
 
 
 // Seguridad HTTP
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  frameguard: false
+}));
 
 // Limitar todas las peticiones generales (DDoS protection)
 const apiLimiter = rateLimit({
