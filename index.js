@@ -64,7 +64,8 @@ app.use("/inventario/login", loginLimiter);
 const allowedOrigins = ['http://localhost:3000', 'http://localhost:3002', 'https://smi-peru.vercel.app', 'http://localhost:5173', 'http://localhost:5174', 'https://www.woditek.com', 'https://woditek.com', 'https://smi-sistema-logistico.vercel.app'];
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
+    // Permitimos los orígenes exactos y también cualquier subdominio de vercel.app (para los links generados dinámicamente)
+    if (!origin || allowedOrigins.includes(origin) || (origin && origin.endsWith('.vercel.app'))) {
       callback(null, true);
     } else {
       // Bloquear lanzando un error claro de seguridad
